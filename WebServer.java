@@ -103,7 +103,7 @@ class WebServerThread implements Runnable {
 			}
 			else if (extension.contains(".html")){
 				out = new PrintWriter(clientConnection.getOutputStream(), true);
-				out.println("HTTP/1.0 200");
+				out.println("HTTP/1.0 200 OK");
 				out.println("Content-type: text/html");
 				out.println("Server-name: myserver");
 
