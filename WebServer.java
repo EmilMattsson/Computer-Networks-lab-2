@@ -101,13 +101,13 @@ class WebServerThread implements Runnable {
 
 				binaryOut.close();
 			}
-			else if (extension.contains(".html")){
+			//else if (extension.contains(".html")){
 				out = new PrintWriter(clientConnection.getOutputStream(), true);
 				out.println("HTTP/1.0 200 OK");
 				out.println("Content-type: text/html");
 				out.println("Server-name: myserver");
-
-				Path p = Paths.get("C:\\Users\\Emil\\Java_kurser\\1DV701_assign2\\src\\dir1\\subdir1\\Hello world.html");
+/*
+				Path p = Paths.get("C:\\Users\\Emil\\Documents\\Computer-Networks-lab-2\\dir1\\subdir\\index.html");
 				Files.readAllBytes(p);
 				byte[] b = new byte[Files.readAllBytes(p).length];
 				b = Files.readAllBytes(p);
@@ -115,17 +115,17 @@ class WebServerThread implements Runnable {
 				binaryOut.writeBytes("");
 				binaryOut.write(b);
 				binaryOut.flush();
-				binaryOut.close();
+				binaryOut.close();*/
 				
-				/*File html1 = new File("Hello world.html");
+				File html1 = new File("C:\\Users\\Emil\\Documents\\Computer-Networks-lab-2\\dir1\\subdir\\index.html");
 				String response = getText(html1);
 				out.println("Content-length: " + response.length());
 				out.println("");
 				out.println(response);
 				out.flush();
 				out.close();
-				clientConnection.close();*/
-			}
+				clientConnection.close();
+			//}
 		} catch (IOException e){
 			e.printStackTrace();
 		}
