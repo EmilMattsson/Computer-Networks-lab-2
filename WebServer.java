@@ -1,13 +1,9 @@
-import java.io.BufferedReader;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -16,7 +12,6 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Scanner;
 
 public class WebServer {
 	public static final int BUFSIZE= 1024;
@@ -48,6 +43,8 @@ class WebServerThread implements Runnable {
 	protected Socket clientConnection;
 	private final int id;
 	private byte[] buffer;
+	File file = new File("dir2\\subdir2\\TCP Client with small buffer size.png");
+	String image1Path = file.getAbsolutePath();
 
 	public WebServerThread(Socket s, int i, byte[] b){
 		this.clientConnection = s;
@@ -55,42 +52,37 @@ class WebServerThread implements Runnable {
 		this.buffer = b;
 	}
 
-	private static String getText(File file) throws FileNotFoundException{		//Method for reading the text from the selected file
-		Scanner scan = new Scanner(file);
-		String text = "";
-		while (scan.hasNextLine()){
-			text += scan.nextLine();
-		}
-		scan.close();
-		return text;
-	}
-
 	@Override
 	public void run() {
-		BufferedReader in = null;
+		DataInputStream in = null;
 		DataOutputStream binaryOut = null;
 		FileInputStream fis = null;
 		String request;
 		DateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z");
 		Date date = new Date();
+		Path p;
 
 		try {
-			in = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
+			in = new DataInputStream(clientConnection.getInputStream());
 			binaryOut = new DataOutputStream(clientConnection.getOutputStream());
 			String webServerAddress = clientConnection.getInetAddress().toString();
 			System.out.println("New Connection:" + webServerAddress);
-
-			request = in.readLine();
+			String html = new File("dir1\\subdir1\\index.html").getAbsolutePath();
+			System.out.println(html + " <-- path");
+			
+			//byte[] buffer = new byte[buffer.length];
+			in.read(buffer);
+			request = new String(buffer).trim();
+			String[] parts = request.split("\n");
+			request = parts[0];
 			System.out.println("--- Client request: " + request);
 			
 			if (request.contains("GET")){
-				String[] parts = request.split("\\ ");
-				String extension = parts[1];
+				String[] parts2 = request.split("\\ ");
+				String extension = parts2[1];
 				System.out.println(extension);
 
-				if(extension.contains("png"))
-				{
-					File file = new File("TCP Client with small buffer size.png");
+				if(extension.contains(image1Path) || extension.contains("/dir2/subdir2")){
 					fis = new FileInputStream(file);
 					byte[] data = new byte[(int) file.length()];
 					fis.read(data);
@@ -106,7 +98,7 @@ class WebServerThread implements Runnable {
 					binaryOut.writeBytes("\r\n\r\n");
 					binaryOut.write(data);
 				}
-				else if (extension.contains("html")){
+				else if (extension.contains(html) || extension.contains("/dir1/subdir1")){
 
 					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
 					binaryOut.writeBytes("Content-type: text/html\r\n");
@@ -124,11 +116,13 @@ class WebServerThread implements Runnable {
 				binaryOut.flush();
 				binaryOut.close();*/
 
-					File html1 = new File("C:\\Users\\Emil\\Desktop\\blabla\\dir1\\subdir\\index.html");
-					String response = getText(html1);
-					binaryOut.writeBytes("Content-length: " + response.length());
+					p = Paths.get(html);
+					Files.readAllBytes(p);
+					byte[] b = new byte[Files.readAllBytes(p).length];
+					b = Files.readAllBytes(p);
+					binaryOut.writeBytes("Content-length: " + b.length);
 					binaryOut.writeBytes("\r\n\r\n");
-					binaryOut.writeBytes(response);
+					binaryOut.write(b);
 				}
 			}	else {
 				
