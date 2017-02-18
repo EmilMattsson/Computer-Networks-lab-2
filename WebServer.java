@@ -94,27 +94,14 @@ class WebServerThread implements Runnable {
 					binaryOut.writeBytes("Server-name: Myserver\r\n");
 					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
 					binaryOut.writeBytes("Content-Length: " + data.length);
-
 					binaryOut.writeBytes("\r\n\r\n");
 					binaryOut.write(data);
 				}
 				else if (extension.contains(html) || extension.contains("/dir1/subdir1")){
-
 					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
 					binaryOut.writeBytes("Content-type: text/html\r\n");
 					binaryOut.writeBytes("Server-name: Myserver\r\n");
 					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
-
-					/*
-				Path p = Paths.get("C:\\Users\\Emil\\Documents\\Computer-Networks-lab-2\\dir1\\subdir\\index.html");
-				Files.readAllBytes(p);
-				byte[] b = new byte[Files.readAllBytes(p).length];
-				b = Files.readAllBytes(p);
-				binaryOut.writeBytes("Content-length: " + b.length);
-				binaryOut.writeBytes("");
-				binaryOut.write(b);
-				binaryOut.flush();
-				binaryOut.close();*/
 
 					p = Paths.get(html);
 					Files.readAllBytes(p);
