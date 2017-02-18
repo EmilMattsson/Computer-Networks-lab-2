@@ -13,6 +13,9 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 
 public class WebServer {
@@ -65,48 +68,52 @@ class WebServerThread implements Runnable {
 	@Override
 	public void run() {
 		BufferedReader in = null;
-		PrintWriter out = null;
 		DataOutputStream binaryOut = null;
 		FileInputStream fis = null;
 		String request;
+		DateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z");
+		Date date = new Date();
 
 		try {
+			in = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
+			binaryOut = new DataOutputStream(clientConnection.getOutputStream());
 			String webServerAddress = clientConnection.getInetAddress().toString();
 			System.out.println("New Connection:" + webServerAddress);
-			in = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
 
 			request = in.readLine();
 			System.out.println("--- Client request: " + request);
+			
+			if (request.contains("GET")){
+				String[] parts = request.split("\\ ");
+				String extension = parts[1];
+				System.out.println(extension);
 
+				if(extension.contains("png"))
+				{
+					File file = new File("TCP Client with small buffer size.png");
+					fis = new FileInputStream(file);
+					byte[] data = new byte[(int) file.length()];
+					fis.read(data);
+					fis.close();
 
+					binaryOut = new DataOutputStream(clientConnection.getOutputStream());
+					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
+					binaryOut.writeBytes("Content-Type: image/png\r\n");
+					binaryOut.writeBytes("Server-name: Myserver\r\n");
+					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
+					binaryOut.writeBytes("Content-Length: " + data.length);
 
-			String[] parts = request.split("\\ ");
-			String extension = parts[1];
-			System.out.println(extension);
+					binaryOut.writeBytes("\r\n\r\n");
+					binaryOut.write(data);
+				}
+				else if (extension.contains("html")){
 
-			if(extension.contains(".png"))
-			{
-				File file = new File("TCP Client with small buffer size.png");
-				fis = new FileInputStream(file);
-				byte[] data = new byte[(int) file.length()];
-				fis.read(data);
-				fis.close();
+					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
+					binaryOut.writeBytes("Content-type: text/html\r\n");
+					binaryOut.writeBytes("Server-name: Myserver\r\n");
+					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
 
-				binaryOut = new DataOutputStream(clientConnection.getOutputStream());
-				binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
-				binaryOut.writeBytes("Content-Type: image/png\r\n");
-				binaryOut.writeBytes("Content-Length: " + data.length);
-				binaryOut.writeBytes("\r\n\r\n");
-				binaryOut.write(data);
-
-				binaryOut.close();
-			}
-			//else if (extension.contains(".html")){
-				out = new PrintWriter(clientConnection.getOutputStream(), true);
-				out.println("HTTP/1.0 200 OK");
-				out.println("Content-type: text/html");
-				out.println("Server-name: myserver");
-/*
+					/*
 				Path p = Paths.get("C:\\Users\\Emil\\Documents\\Computer-Networks-lab-2\\dir1\\subdir\\index.html");
 				Files.readAllBytes(p);
 				byte[] b = new byte[Files.readAllBytes(p).length];
@@ -116,16 +123,16 @@ class WebServerThread implements Runnable {
 				binaryOut.write(b);
 				binaryOut.flush();
 				binaryOut.close();*/
+
+					File html1 = new File("C:\\Users\\Emil\\Desktop\\blabla\\dir1\\subdir\\index.html");
+					String response = getText(html1);
+					binaryOut.writeBytes("Content-length: " + response.length());
+					binaryOut.writeBytes("\r\n\r\n");
+					binaryOut.writeBytes(response);
+				}
+			}	else {
 				
-				File html1 = new File("C:\\Users\\Emil\\Documents\\Computer-Networks-lab-2\\dir1\\subdir\\index.html");
-				String response = getText(html1);
-				out.println("Content-length: " + response.length());
-				out.println("");
-				out.println(response);
-				out.flush();
-				out.close();
-				clientConnection.close();
-			//}
+			}
 		} catch (IOException e){
 			e.printStackTrace();
 		}
@@ -133,7 +140,7 @@ class WebServerThread implements Runnable {
 			try {
 				/* Close socket and terminate thread etc. */
 				in.close();
-				out.close();
+				binaryOut.close();
 				clientConnection.close();
 				//System.out.println("Server Thread_" + id + ": has served a client");
 				Thread.currentThread().interrupt();
