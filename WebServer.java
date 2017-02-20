@@ -43,13 +43,53 @@ class WebServerThread implements Runnable {
 	protected Socket clientConnection;
 	private final int id;
 	private byte[] buffer;
-	File file = new File("dir2\\subdir2\\TCP Client with small buffer size.png");
-	String image1Path = file.getAbsolutePath();
+	private DateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z");
+	private Date date = new Date();
+	private DataInputStream in = null;
+	private DataOutputStream binaryOut = null;
+	private FileInputStream fis = null;
+	private Path p;
 
 	public WebServerThread(Socket s, int i, byte[] b){
 		this.clientConnection = s;
 		this.id = i;
 		this.buffer = b;
+	}
+
+	private void getFile(String path) {
+		File dir = new File(path);
+		File[] dirContent = dir.listFiles();
+		for (File e : dirContent){
+			System.out.println(e.getPath() + " hej");
+		}
+		File f = dirContent[0];
+		if (f.getPath().contains(".html")) {
+			htmlResponse(f.getPath());
+			System.out.println(f.getPath());
+		}
+	}
+
+	private void htmlResponse(String path) {
+		p = Paths.get(path);
+		try {
+			Files.readAllBytes(p);
+			byte[] b = new byte[Files.readAllBytes(p).length];
+			b = Files.readAllBytes(p);
+
+			binaryOut.writeBytes("HTTP/1.0 200 OK\r\n"
+					+ "Content-type: text/html\r\n"
+					+ "Server-name: Myserver\r\n"
+					+ "Date: " + df.format(date) + "\r\n"
+					+ "Content-length: " + b.length
+					+ "\r\n\r\n");
+			binaryOut.write(b);
+		}	catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void pngResponse() {
+
 	}
 
 	@Override
@@ -67,52 +107,98 @@ class WebServerThread implements Runnable {
 			binaryOut = new DataOutputStream(clientConnection.getOutputStream());
 			String webServerAddress = clientConnection.getInetAddress().toString();
 			System.out.println("New Connection:" + webServerAddress);
-			String html = new File("dir1\\subdir1\\index.html").getAbsolutePath();
-			System.out.println(html + " <-- path");
-			
-			//byte[] buffer = new byte[buffer.length];
+
+			buffer = new byte[buffer.length];
 			in.read(buffer);
 			request = new String(buffer).trim();
 			String[] parts = request.split("\n");
 			request = parts[0];
 			System.out.println("--- Client request: " + request);
-			
+
 			if (request.contains("GET")){
 				String[] parts2 = request.split("\\ ");
 				String extension = parts2[1];
-				System.out.println(extension);
-
-				if(extension.contains(image1Path) || extension.contains("/dir2/subdir2")){
-					fis = new FileInputStream(file);
-					byte[] data = new byte[(int) file.length()];
-					fis.read(data);
-					fis.close();
-
-					binaryOut = new DataOutputStream(clientConnection.getOutputStream());
-					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
-					binaryOut.writeBytes("Content-Type: image/png\r\n");
-					binaryOut.writeBytes("Server-name: Myserver\r\n");
-					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
-					binaryOut.writeBytes("Content-Length: " + data.length);
-					binaryOut.writeBytes("\r\n\r\n");
-					binaryOut.write(data);
+				//System.out.println(extension);
+				extension = extension.replaceFirst("/", "");
+				//System.out.println(extension);
+				if (extension.contains("%20")) {
+					extension = extension.replaceAll("%20", " ");
 				}
-				else if (extension.contains(html) || extension.contains("/dir1/subdir1")){
-					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
-					binaryOut.writeBytes("Content-type: text/html\r\n");
-					binaryOut.writeBytes("Server-name: Myserver\r\n");
-					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
+				//System.out.println(extension);
+				//getFile(extension);
 
-					p = Paths.get(html);
+				File requestedFile = new File(extension);
+				if (requestedFile.isDirectory()) {
+					File[] dirContent = requestedFile.listFiles();
+					requestedFile = dirContent[0];
+				}
+				if (requestedFile.exists()) {
+					String contentType = "";
+					if (requestedFile.getPath().contains(".html")) {
+						//System.out.println(requestedFile.getPath());
+						contentType = "text/html";
+					}
+					else if (requestedFile.getPath().contains(".png")) {
+						//System.out.println(requestedFile.getPath());
+						contentType = "image/png";
+					}
+					p = Paths.get(requestedFile.getPath());
 					Files.readAllBytes(p);
 					byte[] b = new byte[Files.readAllBytes(p).length];
 					b = Files.readAllBytes(p);
-					binaryOut.writeBytes("Content-length: " + b.length);
-					binaryOut.writeBytes("\r\n\r\n");
+
+					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n"
+							+ "Content-type: " + contentType + "\r\n"
+							+ "Server-name: Myserver\r\n"
+							+ "Date: " + df.format(date) + "\r\n"
+							+ "Content-length: " + b.length
+							+ "\r\n\r\n");
+					binaryOut.write(b);
+				}	
+				else if (requestedFile.exists() == false){
+					p = Paths.get("dir3/subdir3/404.png");
+					Files.readAllBytes(p);
+					byte[] b = new byte[Files.readAllBytes(p).length];
+					b = Files.readAllBytes(p);
+					binaryOut.writeBytes("HTTP/1.0 404 NOT FOUND\r\n"
+							+ "Content-type: image/png\r\n"
+							+ "Server-name: Myserver\r\n"
+							+ "Date: " + df.format(date) + "\r\n"
+							+ "Content-length: " + b.length
+							+ "\r\n\r\n");
 					binaryOut.write(b);
 				}
+
+				//				if(extension.contains(image1Path) || extension.contains("dir2/subdir2")){
+				//					fis = new FileInputStream(file);
+				//					byte[] data = new byte[(int) file.length()];
+				//					fis.read(data);
+				//					fis.close();
+				//
+				//					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n");
+				//					binaryOut.writeBytes("Content-Type: image/png\r\n");
+				//					binaryOut.writeBytes("Server-name: Myserver\r\n");
+				//					binaryOut.writeBytes("Date: " + df.format(date) + "\r\n");
+				//					binaryOut.writeBytes("Content-Length: " + data.length);
+				//					binaryOut.writeBytes("\r\n\r\n");
+				//					binaryOut.write(data);
+				//				}
+				//				else if (extension.contains("index.html") || extension.contains("dir1/subdir1")){
+				//					p = Paths.get(html);
+				//					Files.readAllBytes(p);
+				//					byte[] b = new byte[Files.readAllBytes(p).length];
+				//					b = Files.readAllBytes(p);
+				//					
+				//					binaryOut.writeBytes("HTTP/1.0 200 OK\r\n"
+				//							+ "Content-type: text/html\r\n"
+				//							+ "Server-name: Myserver\r\n"
+				//							+ "Date: " + df.format(date) + "\r\n"
+				//							+ "Content-length: " + b.length
+				//							+ "\r\n\r\n");
+				//					binaryOut.write(b);
+				//				}
 			}	else {
-				
+
 			}
 		} catch (IOException e){
 			e.printStackTrace();
