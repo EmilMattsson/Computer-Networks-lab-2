@@ -115,7 +115,7 @@ class WebServerThread implements Runnable {
 								+ "\r\n\r\n");
 						binaryOut.write(b);
 					}
-					else {
+					else if (requestedItem.isFile()){
 						p = Paths.get(requestedItem.getPath());
 						Files.readAllBytes(p);
 						byte[] b = new byte[Files.readAllBytes(p).length];
@@ -123,6 +123,19 @@ class WebServerThread implements Runnable {
 
 						binaryOut.writeBytes("HTTP/1.0 200 OK\r\n"
 								+ "Content-type: " + contentType + "\r\n"
+								+ "Server-name: Myserver\r\n"
+								+ "Date: " + df.format(date) + "\r\n"
+								+ "Content-length: " + b.length
+								+ "\r\n\r\n");
+						binaryOut.write(b);
+					}
+					else if (requestedItem.isDirectory()) {
+						p = Paths.get("dir3/subdir3/404.png");
+						Files.readAllBytes(p);
+						byte[] b = new byte[Files.readAllBytes(p).length];
+						b = Files.readAllBytes(p);
+						binaryOut.writeBytes("HTTP/1.0 404 NOT FOUND\r\n"
+								+ "Content-type: image/png\r\n"
 								+ "Server-name: Myserver\r\n"
 								+ "Date: " + df.format(date) + "\r\n"
 								+ "Content-length: " + b.length
