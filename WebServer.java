@@ -67,13 +67,16 @@ class WebServerThread implements Runnable {
 			System.out.println("New Connection:" + webServerAddress);
 			buffer = new byte[buffer.length];
 
-			/* The while loop is only for keeping the connection with Putty until request */
+			/* The thread gets a request string from a browser, usually GET-request */
 			in.read(buffer);
 			request = new String(buffer).trim();
 			String[] parts = request.split("\n");
 			request = parts[0];
 			System.out.println("--- Client request: " + request);
 
+			/* If the request is a GET-request, split it and get the part that specifies what is asked for 
+			 * e.g. /dir1/subdir1/index.html
+			 */
 			if (request.contains("GET")){
 				String[] parts2 = request.split("\\ ");
 				request = parts2[1];
@@ -81,6 +84,7 @@ class WebServerThread implements Runnable {
 				System.out.println(request);
 				requestedItem = new File(request);
 
+				/* If the requested item exist, check what kind of item it is */
 				if (requestedItem.exists()) {
 
 					if (requestedItem.isDirectory()) {
@@ -104,7 +108,11 @@ class WebServerThread implements Runnable {
 					if (requestedItem.getPath().contains("dir3")) {
 						response403();
 					}
+					/* The else statement below should be "else if(requestedItem.isFile())"
+					 * but to generate an error in server to get 500-error it is not
+					 */
 					else {
+						/* send the existing requested item to the browser in a 200-OK response*/
 						response200(contentType);
 					}
 					//					else if (requestedItem.isDirectory()) {
@@ -112,6 +120,7 @@ class WebServerThread implements Runnable {
 					//					}
 				}
 				else if (requestedItem.exists() == false){
+					/* If item doesn't exist, generate a 404-error response */
 					response404();
 				}
 			}	else {
@@ -119,6 +128,7 @@ class WebServerThread implements Runnable {
 			}
 		} catch (IOException e){
 			e.printStackTrace();
+			/* If there is an server error, send a 500-error response */
 			response500();
 		}
 		finally {
@@ -136,6 +146,7 @@ class WebServerThread implements Runnable {
 		}
 	}
 
+	/* Method for 200-response sending back an existing requested item */
 	private void response200(String s) {
 		String contentType = s;
 		p = Paths.get(requestedItem.getPath());
@@ -157,6 +168,7 @@ class WebServerThread implements Runnable {
 		}
 	}
 
+	/* Method for 403-response, user requesting an forbidden item */
 	private void response403() {
 		p = Paths.get("dir3/subdir3/403.html");
 		try {
@@ -176,6 +188,7 @@ class WebServerThread implements Runnable {
 		}
 	}
 
+	/* Method for 404-response, user requesting an item that doesn't exist */
 	private void response404() {
 		p = Paths.get("dir3/subdir3/404.html");
 		try {
@@ -195,6 +208,7 @@ class WebServerThread implements Runnable {
 		}
 	}
 
+	/* Method for 500-response, an internal server error */
 	private void response500() {
 		p = Paths.get("dir3/subdir3/500.html");
 		try {
