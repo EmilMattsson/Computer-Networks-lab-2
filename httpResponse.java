@@ -8,6 +8,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/* A help class for the Web Server, this class contains all HTTP responses for the server */
 public class httpResponse {
 
 	private Path p;
