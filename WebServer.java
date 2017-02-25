@@ -5,12 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class WebServer {
 	public static final int BUFSIZE= 1024;
@@ -39,18 +33,16 @@ public class WebServer {
 }
 
 class WebServerThread implements Runnable {
+	
 	protected Socket clientConnection;
 	private final int id;
 	private byte[] buffer;
-	private byte[] b;
 	private DataInputStream in = null;
 	private DataOutputStream binaryOut = null;
 	private String request;
 	private String contentType;
-	private DateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z");
-	private Date date = new Date();
-	private Path p;
 	private File requestedItem;
+	httpResponse httpResponse;
 
 	public WebServerThread(Socket s, int i, byte[] b){
 		this.clientConnection = s;
@@ -66,6 +58,7 @@ class WebServerThread implements Runnable {
 			String webServerAddress = clientConnection.getInetAddress().toString();
 			System.out.println("New Connection:" + webServerAddress);
 			buffer = new byte[buffer.length];
+			httpResponse = new httpResponse(binaryOut);
 
 			/* The thread gets a request string from a browser, usually GET-request */
 			in.read(buffer);
@@ -99,21 +92,18 @@ class WebServerThread implements Runnable {
 					if (requestedItem.getPath().contains(".html")) {
 						contentType = "text/html";
 					}
-					//					else if (requestedFile.getPath().contains(".htm")) {
-					//						contentType = "text/htm";
-					//					}
 					else if (requestedItem.getPath().contains(".png")) {
 						contentType = "image/png";
 					}
-					if (requestedItem.getPath().contains("dir3")) {
-						response403();
+					if (requestedItem.getPath().contains("dir3") || requestedItem.getAbsolutePath().contains("Shared") == false) {
+						httpResponse.response403();
 					}
 					/* The else statement below should be "else if(requestedItem.isFile())"
 					 * but to generate an error in server to get 500-error it is not
 					 */
 					else {
 						/* send the existing requested item to the browser in a 200-OK response*/
-						response200(contentType);
+						httpResponse.response200(contentType, requestedItem);
 					}
 					//					else if (requestedItem.isDirectory()) {
 					//						response404();
@@ -121,15 +111,15 @@ class WebServerThread implements Runnable {
 				}
 				else if (requestedItem.exists() == false){
 					/* If item doesn't exist, generate a 404-error response */
-					response404();
+					httpResponse.response404();
 				}
 			}	else {
-
+				/* Insert POST method here */
 			}
 		} catch (IOException e){
 			e.printStackTrace();
 			/* If there is an server error, send a 500-error response */
-			response500();
+			httpResponse.response500();
 		}
 		finally {
 			try {
@@ -143,88 +133,6 @@ class WebServerThread implements Runnable {
 			} catch (Exception e2) {
 				e2.printStackTrace();
 			}
-		}
-	}
-
-	/* Method for 200-response sending back an existing requested item */
-	private void response200(String s) {
-		String contentType = s;
-		p = Paths.get(requestedItem.getPath());
-		try {
-			Files.readAllBytes(p);
-			b = new byte[Files.readAllBytes(p).length];
-			b = Files.readAllBytes(p);
-			System.out.println(requestedItem.getPath());
-			binaryOut.writeBytes("HTTP/1.1 200 OK\r\n"
-					+ "Content-type: " + contentType + "\r\n"
-					+ "Server-name: Myserver\r\n"
-					+ "Date: " + df.format(date) + "\r\n"
-					+ "Content-length: " + b.length
-					+ "\r\n\r\n");
-			binaryOut.write(b);
-		}	catch (IOException e) {
-			e.printStackTrace();
-			response500();
-		}
-	}
-
-	/* Method for 403-response, user requesting an forbidden item */
-	private void response403() {
-		p = Paths.get("dir3/subdir3/403.html");
-		try {
-			Files.readAllBytes(p);
-			b = new byte[Files.readAllBytes(p).length];
-			b = Files.readAllBytes(p);
-			binaryOut.writeBytes("HTTP/1.1 403 FORBIDDEN\r\n"
-					+ "Content-type: text/html\r\n"
-					+ "Server-name: Myserver\r\n"
-					+ "Date: " + df.format(date) + "\r\n"
-					+ "Content-length: " + b.length
-					+ "\r\n\r\n");
-			binaryOut.write(b);
-		}	catch (IOException e) {
-			e.printStackTrace();
-			response500();
-		}
-	}
-
-	/* Method for 404-response, user requesting an item that doesn't exist */
-	private void response404() {
-		p = Paths.get("dir3/subdir3/404.html");
-		try {
-			Files.readAllBytes(p);
-			b = new byte[Files.readAllBytes(p).length];
-			b = Files.readAllBytes(p);
-			binaryOut.writeBytes("HTTP/1.1 404 NOT FOUND\r\n"
-					+ "Content-type: text/html\r\n"
-					+ "Server-name: Myserver\r\n"
-					+ "Date: " + df.format(date) + "\r\n"
-					+ "Content-length: " + b.length
-					+ "\r\n\r\n");
-			binaryOut.write(b);
-		}	catch (IOException e) {
-			e.printStackTrace();
-			response500();
-		}
-	}
-
-	/* Method for 500-response, an internal server error */
-	private void response500() {
-		p = Paths.get("dir3/subdir3/500.html");
-		try {
-			Files.readAllBytes(p);
-			b = new byte[Files.readAllBytes(p).length];
-			b = Files.readAllBytes(p);
-			binaryOut.writeBytes("HTTP/1.1 500 Internal Server Error\r\n"
-					+ "Content-type: text/html\r\n"
-					+ "Server-name: Myserver\r\n"
-					+ "Date: " + df.format(date) + "\r\n"
-					+ "Content-length: " + b.length
-					+ "\r\n\r\n");
-			binaryOut.write(b);
-
-		}	catch (IOException e){
-			e.printStackTrace();
 		}
 	}
 }
